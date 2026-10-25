@@ -54,6 +54,9 @@ default: ## Show essential commands
 	@echo "Web to Markdown:"
 	@echo "  make web-to-md       Convert web pages to markdown"
 	@echo ""
+	@echo "Phone Opener:"
+	@echo "  make phone-opener    Generate considerate phone opening lines (Gradio UI)"
+	@echo ""
 	@echo "Other:"
 	@echo "  make clean          Clean build artifacts"
 	@echo "  make help           Show ALL available commands"
@@ -131,6 +134,9 @@ help: ## Show ALL available commands
 	@echo ""
 	@echo "WEB TO MARKDOWN:"
 	@echo "  make web-to-md URL=<url> [URL2=<url>] [OUTPUT=<path>]  Convert web pages to markdown (saves to content_dirs[0]/sites/)"
+	@echo ""
+	@echo "PHONE OPENER:"
+	@echo "  make phone-opener    Start Gradio UI to generate considerate phone opening lines"
 	@echo ""
 	@echo "UTILITIES:"
 	@echo "  make clean           Clean build artifacts"
@@ -625,6 +631,20 @@ illustrate-prompts-only: ## Preview prompts without generating images. Usage: ma
 	fi
 	@echo "🎨 Generating prompts (no images)..."
 	@uv run python -m scenarios.article_illustrator "$(INPUT)" --prompts-only
+
+# Phone Opener
+phone-opener: ## Generate considerate opening lines before a phone call (Gradio UI)
+	@echo "Starting phone opener..."
+	@if [ -f .env ]; then \
+		set -a && . ./.env && set +a && uv run python -m scenarios.phone_opener; \
+	elif [ -z "$$ANTHROPIC_API_KEY" ]; then \
+		echo "Error: ANTHROPIC_API_KEY is not set."; \
+		echo "  Option 1: Create a .env file with ANTHROPIC_API_KEY=sk-ant-..."; \
+		echo "  Option 2: Run: export ANTHROPIC_API_KEY=sk-ant-... && make phone-opener"; \
+		exit 1; \
+	else \
+		uv run python -m scenarios.phone_opener; \
+	fi
 
 # Web to Markdown
 web-to-md: ## Convert web pages to markdown. Usage: make web-to-md URL=https://example.com [URL2=https://another.com] [OUTPUT=path]
