@@ -13,9 +13,11 @@ import json
 import os
 import sys
 
+import opik
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
+from opik.integrations.langchain import OpikTracer
 
 from amplifier.synthesis.config import ANALYST_MODEL
 from amplifier.synthesis.config import CACHE_DIR
@@ -45,6 +47,7 @@ def get_file_content(path: str) -> str:
         sys.exit(1)
 
 
+@opik.track(type="tool", name="analysis")
 def run_analysis(doc_path: str, query: str, clear_cache: bool):
     """
     Runs the analysis for a single document, handling caching.
@@ -66,7 +69,8 @@ def run_analysis(doc_path: str, query: str, clear_cache: bool):
         llm = ChatOpenAI(model=ANALYST_MODEL, temperature=0)
         parser = JsonOutputParser()
         chain = ANALYST_PROMPT | llm | parser
-        brief = chain.invoke({"query": query, "document": content})
+        tracer = OpikTracer()
+        brief = chain.invoke({"query": query, "document": content}, config={"callbacks": [tracer]})
         brief["source_document"] = filename
 
         with open(cache_path, "w") as f:

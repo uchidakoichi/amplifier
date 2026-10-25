@@ -15,9 +15,11 @@ import os
 import sys
 from typing import Any
 
+import opik
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
+from opik.integrations.langchain import OpikTracer
 
 from amplifier.synthesis.config import CACHE_DIR
 from amplifier.synthesis.config import SYNTHESIST_MODEL
@@ -60,6 +62,7 @@ def get_analyst_briefs() -> list[dict[str, Any]]:
     return briefs
 
 
+@opik.track(type="llm", name="synthesis")
 def run_synthesis(query: str) -> str:
     """
     Runs the final synthesis stage by reading all cached analyst briefs
@@ -80,6 +83,10 @@ def run_synthesis(query: str) -> str:
     llm = ChatOpenAI(model=SYNTHESIST_MODEL, temperature=0.2)
     parser = StrOutputParser()
     chain = SYNTHESIST_PROMPT | llm | parser
+    tracer = OpikTracer()
 
-    final_report = chain.invoke({"query": query, "briefs": "\n\n---\n\n".join(formatted_briefs)})
+    final_report = chain.invoke(
+        {"query": query, "briefs": "\n\n---\n\n".join(formatted_briefs)},
+        config={"callbacks": [tracer]},
+    )
     return final_report

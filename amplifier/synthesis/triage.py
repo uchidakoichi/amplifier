@@ -12,9 +12,11 @@ import argparse
 import os
 import sys
 
+import opik
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
+from opik.integrations.langchain import OpikTracer
 
 from amplifier.synthesis.config import TRIAGE_MODEL
 
@@ -43,6 +45,7 @@ def get_file_content(path: str) -> str:
         sys.exit(1)
 
 
+@opik.track(type="tool", name="triage")
 def run_triage(doc_path: str, query: str) -> bool:
     """
     Runs the triage process for a single document.
@@ -56,7 +59,8 @@ def run_triage(doc_path: str, query: str) -> bool:
         llm = ChatOpenAI(model=TRIAGE_MODEL, temperature=0)
         parser = StrOutputParser()
         chain = TRIAGE_PROMPT | llm | parser
-        response = chain.invoke({"query": query, "document": content})
+        tracer = OpikTracer()
+        response = chain.invoke({"query": query, "document": content}, config={"callbacks": [tracer]})
         return response.strip().lower() == "true"
     except Exception as e:
         # In case of an error, we can choose to be conservative and consider it not relevant.
